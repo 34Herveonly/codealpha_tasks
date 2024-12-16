@@ -1,83 +1,102 @@
-import React, { useState, useEffect } from "react";
-import { Circle, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import React, { useEffect, useState } from "react";
+import L, { Marker as LeafletMarker } from "leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-// import AttendanceForm from "./student-attendance-form/AttendanceForm";
-
-L.Icon.Default.mergeOptions({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
-const size: React.CSSProperties = {
-  width: "100vw",
-  height: "100vh",
-};
-
-const centerPosition: [number, number] = [-1.985827, 30.126899]; // Center of the circle
-const radius = 1700; // Radius in meters
 
 const Maps: React.FC = () => {
-  const [studentPosition, setStudentPosition] = useState<[number, number] | null>(null);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [isWithinRadius, setIsWithinRadius] = useState(false);
 
-  // Update `isWithinRadius` whenever the student's position changes
   useEffect(() => {
-    if (studentPosition) {
-      const distance = L.latLng(centerPosition).distanceTo(L.latLng(studentPosition));
-      setIsWithinRadius(distance <= radius);
-    }
-  }, [studentPosition]);
+    // Center of the circle (Kigali, Rwanda)
+    const centerPosition: [number, number] = [-1.9441, 30.0619];
+    const radius = 3; // Circle radius in meters
 
-  // Fetch student's current position
-  const getStudentLocation = () => {
+    // Initialize the map
+    const map = L.map("map").setView(centerPosition, 19); // Set initial zoom level to 19
+
+    // Add OpenStreetMap tiles
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 25,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    // Add a circle to the map
+
+    let marker: LeafletMarker | null = null;
+
+    // Function to calculate distance between two points
+    const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+      const toRad = (value: number) => (value * Math.PI) / 180;
+      const R = 6371000; // Earth's radius in meters
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // Distance in meters
+    };
+
+    // Success callback for geolocation
+    const success = (pos: GeolocationPosition) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+
+      // Remove previous marker
+      if (marker) {
+        map.removeLayer(marker);
+      }
+
+      // Add marker at the user's position
+      marker = L.marker([lat, lng]).addTo(map);
+
+      // Update user's position state
+      setUserPosition([lat, lng]);
+
+      // Calculate the distance from the center of the circle
+      const distance = calculateDistance(centerPosition[0], centerPosition[1], lat, lng);
+
+      // Check if within radius
+      if (distance <= radius) {
+        setIsWithinRadius(true);
+      } else {
+        setIsWithinRadius(false);
+        alert("You're not in class!");
+      }
+
+      // Ensure the map always shows the user's location
+      map.setView([lat, lng], 19);
+    };
+
+    // Error callback for geolocation
+    const error = (err: GeolocationPositionError) => {
+      if (err.code === 1) {
+        alert("Please allow your location to access the attendance form.");
+      } else {
+        alert("Cannot get current location. Please try again.");
+      }
+    };
+
+    // Request user's location
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setStudentPosition([latitude, longitude]);
-        },
-        (error) => {
-          console.error("Error getting location", error);
-        }
-      );
+      navigator.geolocation.watchPosition(success, error);
     } else {
-      alert("Geolocation is not supported by this browser.");
+      alert("Geolocation is not supported by your browser.");
     }
-  };
 
-  useEffect(() => {
-    getStudentLocation();
+    // Cleanup on component unmount
+    return () => {
+      map.remove();
+    };
   }, []);
 
   return (
     <div>
-      <MapContainer
-        style={size}
-        center={centerPosition}
-        zoom={13}
-        scrollWheelZoom={true}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Circle
-          center={centerPosition}
-          pathOptions={{ fillColor: "red", opacity: 0.1 }}
-          radius={radius}
-        />
-        {studentPosition && (
-          <Marker position={studentPosition}>
-            <Popup>Your Current Position</Popup>
-          </Marker>
-        )}
-      </MapContainer>
-
-      {/* Pass isWithinRadius as a prop to AttendanceForm */}
-      {/* <AttendanceForm isWithinRadius={isWithinRadius} /> */}
+      <div id="map" style={{ width: "100%", height: "100vh" }} />
+      {userPosition && isWithinRadius ? (
+        <p style={{ textAlign: "center", color: "green" }}>You are within the classroom radius.</p>
+      ) : (
+        <p style={{ textAlign: "center", color: "red" }}>You are outside the classroom radius.</p>
+      )}
     </div>
   );
 };

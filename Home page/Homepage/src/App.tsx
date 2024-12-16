@@ -15,7 +15,8 @@ import "./LoginRegister/LoginRegister.css";
 import LoginRegister from "./LoginRegister/LoginRegister";
 import "./student-attendance-form/AttendanceForm.css";
 import AttendanceForm from "./student-attendance-form/AttendanceForm";
-import MyComponent from "./Maps/Maps"
+import NotFound from "./NotFound/NotFound";
+import Maps from "./Maps/Maps";
 
 
 
@@ -35,16 +36,17 @@ function App() {
                 <Login />
               </>
             }
-          />
-          <Route
-            path="/map"
-            element={
-              <>
-                <NavBar />
-                <MyComponent />
-              </>
-            }
-          />
+           />
+           
+           <Route
+             path="/Maps"
+             element={
+               <>
+                 <NavBar />
+                 <Maps />
+               </>
+             }
+           /> 
 
           {/* Routes for Attendance */}
           <Route
@@ -92,6 +94,10 @@ function App() {
 
           {/* Route for Login (no NavBar here) */}
           <Route path="/" element={<LoginRegister />} />
+
+          {/* Route for any route that has no page to render */}
+          <Route path="*" element={<NotFound />} />
+
         </Routes>
       </Router>
     </>

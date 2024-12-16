@@ -7,6 +7,7 @@ import "./AttendanceForm.css";
 interface AttendanceFormProps {
   isWithinRadius: boolean;
 }
+// { isWithinRadius }
 
 const AttendanceForm: React.FC<AttendanceFormProps> = () => {
   const [username, setUsername] = useState<string>("");
@@ -17,11 +18,6 @@ const AttendanceForm: React.FC<AttendanceFormProps> = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
 
-  function handleSub (){
-    console.log('clicked')
-  }
-
-  
   // Method to save attendance to the database
   const saveAttendanceToDatabase = async (formData: Record<string, any>) => {
     try {
@@ -160,9 +156,10 @@ const AttendanceForm: React.FC<AttendanceFormProps> = () => {
               />
             </div>
 
-            <button type="submit"  onClick={handleSub}>
+             <button type="submit" >
               Submit
             </button>
+            {/* //disabled={!isWithinRadius} */}
 
             {errorMessage && <p className="error-message">{errorMessage}</p>}
             {successMessage && <p className="success-message">{successMessage}</p>}
